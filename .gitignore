@@ -8,6 +8,10 @@ archive/
 __pycache__/
 *.pyc
 
+# Slurm scripts
+submit_slurm.sh
+exp2/submit_slurm.sh
+
 # Raw simulation outputs (large JSON blobs)
 results/
 exp2/results/
