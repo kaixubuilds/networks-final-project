@@ -1,0 +1,72 @@
+{
+  "text": {
+    "title": "Model scale vs. load-balancing performance",
+    "xlabel": "Parameter count (log scale)",
+    "ylabel": "Median mean \u03c3 (log scale)",
+    "baseline_labels": {
+      "Random": "Random",
+      "JSQ-stale": "JSQ-stale"
+    },
+    "family_labels": {
+      "Qwen3": "Qwen3",
+      "DeepSeek": "DeepSeek-R1",
+      "gpt-oss": "gpt-oss",
+      "Other": "Other"
+    },
+    "uncertain_note": "(param count uncertain)"
+  },
+  "models": [
+    {
+      "name": "Qwen3-1.7B",
+      "point_label": "1.7B",
+      "param_count": 1837891584,
+      "median_sigma": 27.2073,
+      "family": "Qwen3",
+      "uncertain_params": false
+    },
+    {
+      "name": "Qwen3-4B",
+      "point_label": "4B",
+      "param_count": 4022272000,
+      "median_sigma": 26.752,
+      "family": "Qwen3",
+      "uncertain_params": false
+    },
+    {
+      "name": "Qwen3-8B",
+      "point_label": "8B",
+      "param_count": 8474066944,
+      "median_sigma": 24.0234,
+      "family": "Qwen3",
+      "uncertain_params": false
+    },
+    {
+      "name": "Qwen3-14B",
+      "point_label": "14B",
+      "param_count": 15667691520,
+      "median_sigma": 27.3788,
+      "family": "Qwen3",
+      "uncertain_params": false
+    },
+    {
+      "name": "DeepSeek-R1-0528-Qwen3-8B",
+      "point_label": "R1-8B",
+      "param_count": 8474066944,
+      "median_sigma": 27.2553,
+      "family": "DeepSeek",
+      "uncertain_params": false
+    },
+    {
+      "name": "gpt-oss-20b",
+      "point_label": "gpt-oss-20b",
+      "param_count": 1972592640,
+      "median_sigma": 21.0256,
+      "family": "gpt-oss",
+      "uncertain_params": true
+    }
+  ],
+  "baseline_medians": {
+    "Random": 3.7658,
+    "JSQ-stale": 14.9474
+  }
+}

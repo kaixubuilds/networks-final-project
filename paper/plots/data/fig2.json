@@ -1,0 +1,42 @@
+{
+  "text": {
+    "title": "Baseline performance statistics (n=100 seeds each)",
+    "col_labels": [
+      "Strategy",
+      "Median \u03c3",
+      "IQR",
+      "Std Dev",
+      "Min",
+      "Max"
+    ]
+  },
+  "rows": [
+    {
+      "strategy": "Random",
+      "color_key": "random",
+      "median": 3.7658,
+      "iqr": 0.2243,
+      "std": 0.1545,
+      "min": 3.406,
+      "max": 4.1514
+    },
+    {
+      "strategy": "Po2C (stale)",
+      "color_key": "po2c",
+      "median": 4.4018,
+      "iqr": 0.0904,
+      "std": 0.0538,
+      "min": 4.27,
+      "max": 4.5299
+    },
+    {
+      "strategy": "JSQ (stale)",
+      "color_key": "jsq",
+      "median": 14.9474,
+      "iqr": 0.6356,
+      "std": 0.4707,
+      "min": 13.9452,
+      "max": 16.4368
+    }
+  ]
+}

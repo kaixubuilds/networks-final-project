@@ -1,0 +1,42 @@
+{
+  "text": {
+    "title": "Parse success rate per model",
+    "col_labels": [
+      "Model",
+      "Parse Rate",
+      "Valid Trials"
+    ]
+  },
+  "models": [
+    {
+      "name": "Qwen3-1.7B",
+      "parse_rate": 0.84,
+      "n_valid": 82
+    },
+    {
+      "name": "Qwen3-4B",
+      "parse_rate": 0.55,
+      "n_valid": 40
+    },
+    {
+      "name": "Qwen3-8B",
+      "parse_rate": 0.43,
+      "n_valid": 36
+    },
+    {
+      "name": "Qwen3-14B",
+      "parse_rate": 0.68,
+      "n_valid": 60
+    },
+    {
+      "name": "DeepSeek-R1-0528-Qwen3-8B",
+      "parse_rate": 0.45,
+      "n_valid": 29
+    },
+    {
+      "name": "gpt-oss-20b",
+      "parse_rate": 0.2,
+      "n_valid": 10
+    }
+  ]
+}

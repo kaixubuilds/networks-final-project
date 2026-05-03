@@ -1,0 +1,763 @@
+% ============================================================
+% references.bib  —  Related Works for Stale-State Dispatcher
+% Experiment: can LLMs zero-shot synthesize age-aware load-
+% balancing strategies that beat Power-of-Two-Choices (Po2C)
+% when per-worker heartbeat ages are provided as input?
+% ============================================================
+
+
+% ============================================================
+% SECTION 1: Power of Two Choices / Supermarket Model
+% ============================================================
+
+% THE baseline algorithm this project attempts to beat.  Po2C
+% (sample 2 workers, route to shorter) reduces expected queue
+% length from O(log n / log log n) to O(log log n).  Directly
+% cited as the "Po2C (stale)" baseline in the simulation.
+@article{mitzenmacher2001power,
+  author  = {Mitzenmacher, Michael},
+  title   = {The Power of Two Choices in Randomized Load Balancing},
+  journal = {IEEE Transactions on Parallel and Distributed Systems},
+  volume  = {12},
+  number  = {10},
+  pages   = {1094--1104},
+  year    = {2001},
+  doi     = {10.1109/71.963420}
+}
+
+% Independent Russian discovery of the supermarket model via
+% McKean–Vlasov mean-field ODEs; co-originator of the Po2C
+% result that underpins all JSQ-d theory used here.
+@article{vvedenskaya1996queueing,
+  author  = {Vvedenskaya, N. D. and Dobrushin, R. L. and Karpelevich, F. I.},
+  title   = {Queueing System with Selection of the Shortest of Two Queues:
+             An Asymptotic Approach},
+  journal = {Problems of Information Transmission},
+  volume  = {32},
+  number  = {1},
+  pages   = {20--34},
+  year    = {1996}
+}
+
+% Comprehensive survey of the balls-into-bins framing, d-choices
+% generalization, and applications.  Essential background for
+% understanding why d=2 yields exponential gains and why adding
+% age-awareness could push further.
+@incollection{mitzenmacher2001survey,
+  author    = {Mitzenmacher, Michael and Richa, Andrea W. and Sitaraman, Ramesh},
+  title     = {The Power of Two Random Choices: A Survey of Techniques and Results},
+  booktitle = {Handbook of Randomized Computing},
+  volume    = {1},
+  pages     = {255--312},
+  publisher = {Kluwer Academic Publishers},
+  year      = {2001}
+}
+
+% Proves the key combinatorial result: placing each ball in the
+% lighter of d>=2 bins reduces max load from Theta(log n/log log n)
+% to Theta(log log n / log d).  Theoretical foundation for Po2C
+% guarantees that any improved strategy must surpass.
+@article{azar1999balanced,
+  author  = {Azar, Yossi and Broder, Andrei Z. and Karlin, Anna R. and Upfal, Eli},
+  title   = {Balanced Allocations},
+  journal = {SIAM Journal on Computing},
+  volume  = {29},
+  number  = {1},
+  pages   = {180--200},
+  year    = {1999},
+  doi     = {10.1137/S0097539795288490}
+}
+
+% Extends Po2C to distributed stream processing with Partial Key
+% Grouping; shows practical engineering challenges (skew, partial
+% state) that motivate studying alternatives like age-aware
+% strategies in realistic settings.
+@inproceedings{nasir2015power,
+  author    = {Nasir, Muhammad Anis Uddin and Morales, Gianmarco De Francisci
+               and Garcia-Soriano, David and Kourtellis, Nicolas and Serafini, Marco},
+  title     = {The Power of Both Choices: Practical Load Balancing for
+               Distributed Stream Processing Engines},
+  booktitle = {Proceedings of the IEEE International Conference on Data
+               Engineering (ICDE)},
+  year      = {2015},
+  pages     = {137--148}
+}
+
+
+% ============================================================
+% SECTION 2: Join-Shortest-Queue (JSQ) and Variants
+% ============================================================
+
+% Establishes JSQ's analytical properties via birth-death Markov
+% chains, forming the baseline whose perfect-information ceiling
+% ("JSQ oracle") is used here as an upper bound.
+@article{ahn1996jsq,
+  author  = {Lin, Hwa-Chun and Raghavendra, Cauligi S.},
+  title   = {An Approximate Analysis of the Join the Shortest Queue ({JSQ}) Policy},
+  journal = {IEEE Transactions on Parallel and Distributed Systems},
+  volume  = {7},
+  year    = {1996},
+  doi     = {10.1109/71.491583}
+}
+
+% Extends JSQ analysis to processor-sharing server farms that model
+% real web workloads—exactly the setting in which stale state causes
+% the thundering-herd oscillations central to this experiment.
+@article{bachmat2007jsq,
+  author  = {Gupta, Varun and Harchol-Balter, Mor and Sigman, Karl and Whitt, Ward},
+  title   = {Analysis of Join-the-Shortest-Queue Routing for Web Server Farms},
+  journal = {Performance Evaluation},
+  volume  = {64},
+  number  = {9--12},
+  pages   = {1062--1081},
+  year    = {2007},
+  doi     = {10.1016/j.peva.2007.06.011}
+}
+
+% Proposes routing to idle servers via reverse signaling, eliminating
+% probing overhead and sidestepping the stale-info problem entirely—a
+% design-point alternative to the age-aware approach studied here.
+@article{lu2011joinidlequeue,
+  author  = {Lu, Yi and Xie, Qiaomin and Kliot, Gabriel and Geller, Alan and
+             Larus, James R. and Greenberg, Albert},
+  title   = {Join-Idle-Queue: A Novel Load Balancing Algorithm for Dynamically
+             Scalable Web Services},
+  journal = {Performance Evaluation},
+  volume  = {68},
+  number  = {11},
+  pages   = {1056--1071},
+  year    = {2011},
+  doi     = {10.1016/j.peva.2011.07.015}
+}
+
+% Heavy-traffic diffusion analysis of JSQ in the Halfin–Whitt regime;
+% provides the theoretical framework for comparing JSQ versus
+% estimated-queue policies under communication delay.
+@article{eschenfeldt2020jsq,
+  author  = {Hurtado-Lange, Daniela and Maguluri, Siva Theja},
+  title   = {Load Balancing System under Join the Shortest Queue:
+             Many-Server-Heavy-Traffic Asymptotics},
+  journal = {Queueing Systems},
+  volume  = {100},
+  year    = {2022},
+  note    = {arXiv:2004.04826}
+}
+
+
+% ============================================================
+% SECTION 3: Stale / Outdated Information in Load Balancing
+% ============================================================
+
+% Most directly related work: shows that naive routing to the
+% apparent shortest queue with old data causes severe herding
+% ("herd effect"), and derives age-adjusted threshold strategies.
+% The problem setup of this paper nearly mirrors the simulation
+% design here.
+@article{dahlin2000stale,
+  author  = {Dahlin, Michael},
+  title   = {Interpreting Stale Load Information},
+  journal = {IEEE Transactions on Parallel and Distributed Systems},
+  volume  = {11},
+  number  = {10},
+  pages   = {1033--1047},
+  year    = {2000},
+  doi     = {10.1109/71.888643}
+}
+
+% Analytically characterizes how stale queue-length samples degrade
+% Po2C performance; demonstrates that even moderately outdated data
+% breaks the exponential improvement—directly motivating providing
+% queue_ages_ms to the dispatcher as a first-class input.
+@article{mitzenmacher2000useful,
+  author  = {Mitzenmacher, Michael},
+  title   = {How Useful Is Old Information?},
+  journal = {IEEE Transactions on Parallel and Distributed Systems},
+  volume  = {11},
+  number  = {1},
+  pages   = {6--17},
+  year    = {2000},
+  doi     = {10.1109/71.824714}
+}
+
+% Uses fluid analysis to show that routing to the expected shortest
+% queue given elapsed staleness can outperform both random and greedy
+% stale-JSQ; an early age-weighted dispatch heuristic that an LLM
+% could independently rediscover.
+@inproceedings{cao2003approx,
+  author    = {Cao, Jun and Nyberg, Christian},
+  title     = {An Approximate Analysis of Load Balancing Using Stale State
+               Information for Servers in Parallel},
+  booktitle = {Proceedings of the IASTED International Conference on
+               Communications, Internet and Information Technology (CIIT)},
+  year      = {2003}
+}
+
+% Formally poses as an open problem the question of optimal routing
+% under per-queue messaging delays—precisely the mathematical gap that
+% LLM-synthesized age-aware strategies in this project attempt to fill.
+@article{lipshutz2019open,
+  author  = {Lipshutz, David},
+  title   = {Open Problem --- Load Balancing Using Delayed Information},
+  journal = {Stochastic Systems},
+  volume  = {9},
+  number  = {3},
+  pages   = {305--306},
+  year    = {2019},
+  doi     = {10.1287/stsy.2019.0045}
+}
+
+% Proves diffusion-limit convergence for a state-estimation approach
+% to delayed JSQ; the "estimated queue" model is essentially what a
+% smart age-aware dispatcher should implement, providing a theoretical
+% upper bound against which LLM-generated strategies can be compared.
+@article{eschenfeldt2020estimated,
+  author  = {Atar, Rami and Lipshutz, David},
+  title   = {Heavy Traffic Limits for Join-the-Shortest-Estimated-Queue
+             Policy Using Delayed Information},
+  journal = {Mathematics of Operations Research},
+  volume  = {46},
+  number  = {1},
+  pages   = {268--300},
+  year    = {2021},
+}
+
+% Demonstrates in modern edge computing that randomization-based load
+% balancing fails when schedule lag becomes comparable to job execution
+% time—confirming in a real system the regime this experiment targets
+% (staleness ~20 service times).
+@article{kiani2022stale,
+  author  = {Kiani, Saeid and Movaghar, Ali and Mosakhani, Mehdi},
+  title   = {On the Impact of Stale Information on Distributed Online Load
+             Balancing Protocols for Edge Computing},
+  journal = {Computer Networks},
+  volume  = {207},
+  pages   = {108824},
+  year    = {2022},
+  doi     = {10.1016/j.comnet.2022.108824}
+}
+
+
+% ============================================================
+% SECTION 4: SRPT Scheduling and Heavy-Tailed Workloads
+% ============================================================
+
+% Proves that SRPT minimises mean response time in the M/G/1 queue;
+% the foundational optimality result that motivates using SRPT as the
+% oracle baseline in Experiment 2 and frames noisy estimates as the
+% key degradation mechanism.
+@article{schrage1968srpt,
+  author  = {Schrage, Linus},
+  title   = {A Proof of the Optimality of the Shortest Remaining
+             Processing Time Discipline},
+  journal = {Operations Research},
+  volume  = {16},
+  number  = {3},
+  pages   = {687--690},
+  year    = {1968},
+  doi     = {10.1287/opre.16.3.687}
+}
+
+% Introduces the non-clairvoyant scheduling model where job sizes are
+% unknown at arrival; establishes competitive-ratio bounds for SRPT-like
+% policies under uncertainty, providing the theoretical context for why
+% noisy size estimates degrade performance and what the best achievable
+% policy looks like without perfect information.
+@article{motwani1994nonclairvoyant,
+  author  = {Motwani, Rajeev and Phillips, Steven and Torng, Eric},
+  title   = {Non-Clairvoyant Scheduling},
+  journal = {Theoretical Computer Science},
+  volume  = {130},
+  number  = {1},
+  pages   = {17--47},
+  year    = {1994},
+  doi     = {10.1016/0304-3975(94)90156-2}
+}
+
+% Empirically demonstrates that World Wide Web traffic exhibits
+% self-similar (heavy-tailed) file-size and inter-request distributions;
+% the empirical basis for using Pareto-distributed job sizes in
+% Experiment 2 and for the claim that heavy tails amplify the phantom
+% underload failure mode under noisy SRPT.
+@article{crovella1997selfsimilar,
+  author  = {Crovella, Mark E. and Bestavros, Azer},
+  title   = {Self-Similarity in World Wide Web Traffic: Evidence and
+             Possible Causes},
+  journal = {IEEE/ACM Transactions on Networking},
+  volume  = {5},
+  number  = {6},
+  pages   = {835--846},
+  year    = {1997},
+  doi     = {10.1109/90.650143}
+}
+
+
+% ============================================================
+% SECTION 5: Queueing Theory Fundamentals
+% ============================================================
+
+% Canonical textbook covering M/M/1, M/M/c, and related models;
+% provides the mathematical framework (Poisson arrivals, exponential
+% service, sigma metric) used to design and analyze the simulation.
+@book{kleinrock1975queueing,
+  author    = {Kleinrock, Leonard},
+  title     = {Queueing Systems, Volume {I}: Theory},
+  publisher = {Wiley},
+  address   = {New York},
+  year      = {1975}
+}
+
+% Derives the Halfin–Whitt (QED) heavy-traffic regime for M/M/c queues;
+% the diffusion approximations and traffic-intensity notions used
+% throughout modern Po2C and JSQ literature originate here.
+@article{halfin1981heavy,
+  author  = {Halfin, Shlomo and Whitt, Ward},
+  title   = {Heavy-Traffic Limits for Queues with Many Exponential Servers},
+  journal = {Operations Research},
+  volume  = {29},
+  number  = {3},
+  pages   = {567--588},
+  year    = {1981},
+  doi     = {10.1287/opre.29.3.567}
+}
+
+% Identifies the class of routing policies for which steady-state
+% distributions are insensitive to service-time distribution beyond
+% the mean; gives a lower bound on what "good" policies should achieve
+% and informs why using exponential (not deterministic) service times
+% is the harder, more realistic experimental condition.
+@inproceedings{bonald2004insensitive,
+  author    = {Bonald, Thomas and Jonckheere, Matthieu and Prouti\`{e}re, Alexandre},
+  title     = {Insensitive Load Balancing},
+  booktitle = {Proceedings of the ACM SIGMETRICS International Conference
+               on Measurement and Modeling of Computer Systems},
+  pages     = {367--377},
+  year      = {2004},
+  doi       = {10.1145/1005686.1005730}
+}
+
+
+% ============================================================
+% SECTION 6: Distributed Task Schedulers
+% ============================================================
+
+% Implements Po2C batch sampling in a real cluster scheduler; directly
+% shows the two-choices principle works at scale while remaining
+% decentralized, making it the closest production analog to the
+% simulation studied here.
+@inproceedings{ousterhout2013sparrow,
+  author    = {Ousterhout, Kay and Wendell, Patrick and Zaharia, Matei and Stoica, Ion},
+  title     = {Sparrow: Distributed, Low Latency Scheduling},
+  booktitle = {Proceedings of the ACM Symposium on Operating Systems Principles (SOSP)},
+  pages     = {69--84},
+  year      = {2013},
+  doi       = {10.1145/2517349.2522716}
+}
+
+% Introduces two-level scheduling with resource offers; establishes
+% the architecture within which heartbeat-based load signals propagate,
+% providing the systems context for why per-worker heartbeat ages arise
+% in real cluster managers.
+@inproceedings{hindman2011mesos,
+  author    = {Hindman, Benjamin and Konwinski, Andy and Zaharia, Matei and
+               Ghodsi, Ali and Joseph, Anthony D. and Katz, Randy and
+               Shenker, Scott and Stoica, Ion},
+  title     = {Mesos: A Platform for Fine-Grained Resource Sharing in the
+               Data Center},
+  booktitle = {Proceedings of the USENIX Symposium on Networked Systems
+               Design and Implementation (NSDI)},
+  year      = {2011}
+}
+
+% Describes Yahoo's production cluster manager with decoupled resource
+% management; shows that NodeManager→ResourceManager heartbeats are the
+% actual mechanism by which queue-state ages arise in production—exactly
+% the per-worker heartbeat model simulated here.
+@inproceedings{vavilapalli2013yarn,
+  author    = {Vavilapalli, Vinod Kumar and Murthy, Arun C. and Douglas, Chris
+               and Agarwal, Sharad and Konar, Mahadev and Evans, Robert and
+               Graves, Thomas and Lowe, Jason and Shah, Hitesh and Seth, Siddharth
+               and Saha, Bikas and Curino, Carlo and O'Malley, Owen and
+               Radia, Sriram and Reed, Benjamin and Baldeschwieler, Eric},
+  title     = {{Apache Hadoop YARN}: Yet Another Resource Negotiator},
+  booktitle = {Proceedings of the ACM Symposium on Cloud Computing (SoCC)},
+  year      = {2013},
+  doi       = {10.1145/2523616.2523633}
+}
+
+% Hybrid centralized/distributed scheduler that handles short and long
+% jobs separately; shows that staleness distribution varies by job type,
+% motivating the per-worker age-aware dispatch strategy this project
+% investigates.
+@inproceedings{delgado2015hawk,
+  author    = {Delgado, Pamela and Dinu, Florin and Kermarrec, Anne-Marie and
+               Zwaenepoel, Willy},
+  title     = {Hawk: Hybrid Datacenter Scheduling},
+  booktitle = {Proceedings of the USENIX Annual Technical Conference (ATC)},
+  pages     = {499--510},
+  year      = {2015}
+}
+
+
+% ============================================================
+% SECTION 7: Gossip and Heartbeat Protocols
+% ============================================================
+
+% Seminal paper on gossip-based state propagation; establishes the
+% epidemic dissemination model that underlies why load information ages
+% differently per node when heartbeats are infrequent or lossy—the
+% exact condition this experiment models.
+@inproceedings{demers1987epidemic,
+  author    = {Demers, Alan and Greene, Dan and Hauser, Carl and Irish, Wes and
+               Larson, John and Shenker, Scott and Sturgis, Howard and
+               Swinehart, Dan and Terry, Doug},
+  title     = {Epidemic Algorithms for Replicated Database Maintenance},
+  booktitle = {Proceedings of the ACM Symposium on Principles of Distributed
+               Computing (PODC)},
+  pages     = {1--12},
+  year      = {1987},
+  doi       = {10.1145/43921.43922}
+}
+
+% Describes the gossip heartbeat mechanism for failure detection; the
+% per-member heartbeat counter model directly maps onto the per-worker
+% queue_age_ms state in this project's simulation.
+@inproceedings{vanrenesse1998gossip,
+  author    = {van Renesse, Robbert and Minsky, Yaron and Hayden, Mark},
+  title     = {A Gossip-Style Failure Detection Service},
+  booktitle = {Proceedings of the IFIP International Conference on
+               Distributed Systems Platforms (Middleware)},
+  pages     = {55--70},
+  year      = {1998}
+}
+
+% Shows that traditional heartbeat protocols have quadratic message
+% complexity and proposes a dissemination-based alternative; motivates
+% why real systems have heterogeneous per-worker heartbeat ages rather
+% than a single global refresh, validating the simulation's staleness
+% model.
+@inproceedings{das2002swim,
+  author    = {Das, Abhinandan and Gupta, Indranil and Motivala, Ashish},
+  title     = {{SWIM}: Scalable Weakly-Consistent Infection-Style Process Group
+               Membership Protocol},
+  booktitle = {Proceedings of the IEEE International Conference on Dependable
+               Systems and Networks (DSN)},
+  pages     = {303--312},
+  year      = {2002},
+  doi       = {10.1109/DSN.2002.1028914}
+}
+
+
+% ============================================================
+% SECTION 8: Age of Information (AoI)
+% ============================================================
+
+% Introduces Age of Information as a formal measure of freshness;
+% provides the theoretical framing for why queue_ages_ms is a
+% first-class input to dispatching decisions rather than a noise term
+% to be ignored.
+@inproceedings{kaul2012aoi,
+  author    = {Kaul, Sanjit K. and Yates, Roy D. and Gruteser, Marco},
+  title     = {Real-Time Status: How Often Should One Update?},
+  booktitle = {Proceedings of the IEEE International Conference on Computer
+               Communications (INFOCOM)},
+  pages     = {2731--2735},
+  year      = {2012},
+  doi       = {10.1109/INFOCOM.2012.6195689}
+}
+
+% Comprehensive AoI survey covering optimal update scheduling and
+% applications; establishes the vocabulary (peak age, average age,
+% information staleness) directly applicable to characterizing per-worker
+% heartbeat ages and motivating the age-aware dispatch design.
+@article{yates2021aoi,
+  author  = {Yates, Roy D. and Sun, Yin and Brown, D. Richard and Kaul, Sanjit K.
+             and Modiano, Eytan and Ulukus, Sennur},
+  title   = {Age of Information: An Introduction and Survey},
+  journal = {IEEE Journal on Selected Areas in Communications},
+  volume  = {39},
+  number  = {5},
+  pages   = {1183--1210},
+  year    = {2021},
+  doi     = {10.1109/JSAC.2021.3065072}
+}
+
+
+% ============================================================
+% SECTION 9: LLMs for Code Generation
+% ============================================================
+
+% Introduces Codex and the HumanEval benchmark; establishes that LLMs
+% can synthesize functional Python from docstrings, providing the
+% code-generation capability on which the dispatcher strategy synthesis
+% in this project depends.
+@misc{chen2021codex,
+  author       = {Chen, Mark and Tworek, Jerry and Jun, Heewoo and Yuan, Qiming
+                  and Pinto, Henrique Ponde de Oliveira and Kaplan, Jared and
+                  Edwards, Harri and Burda, Yuri and Joseph, Nicholas and
+                  Brockman, Greg and others},
+  title        = {Evaluating Large Language Models Trained on Code},
+  year         = {2021},
+  eprint       = {2107.03374},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.LG}
+}
+
+% Shows an LLM reaching top-54\% in competitive programming; demonstrates
+% that LLMs can reason about algorithmic correctness at a level relevant
+% to synthesizing non-trivial dispatch heuristics.
+@article{li2022alphacode,
+  author  = {Li, Yujia and Choi, David and Chung, Junyoung and Kushman, Nate and
+             Schrittwieser, Julian and Leblond, R{\'e}mi and Eccles, Tom and
+             Keeling, James and Gimeno, Felix and Dal Lago, Agustin and others},
+  title   = {Competition-Level Code Generation with {AlphaCode}},
+  journal = {Science},
+  volume  = {378},
+  number  = {6624},
+  pages   = {1092--1097},
+  year    = {2022},
+  doi     = {10.1126/science.abq1158}
+}
+
+% Establishes that large-scale language models exhibit in-context
+% learning and zero-shot code reasoning; provides the scaling-law and
+% prompting foundations that make zero-shot dispatch strategy synthesis
+% plausible, and motivates testing multiple model scales.
+@inproceedings{brown2020gpt3,
+  author    = {Brown, Tom B. and Mann, Benjamin and Ryder, Nick and Subbiah, Melanie
+               and Kaplan, Jared and Dhariwal, Prafulla and Neelakantan, Arvind and
+               Shyam, Pranav and Sastry, Girish and Askell, Amanda and others},
+  title     = {Language Models are Few-Shot Learners},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  volume    = {33},
+  pages     = {1877--1901},
+  year      = {2020}
+}
+
+% Documents GPT-4's reasoning and code-generation capabilities; the
+% model family represents the upper end of the LLM capability range
+% under test, and its chain-of-thought reasoning is directly applicable
+% to inferring age-aware routing logic.
+@misc{openai2023gpt4,
+  author       = {Achiam, Josh and Adler, Steven and Agarwal, Sandhini and
+                  Ahmad, Lama and Akkaya, Ilge and Aleman, Florencia Leoni and
+                  Amodei, Dario and others},
+  title        = {{GPT-4} Technical Report},
+  year         = {2023},
+  eprint       = {2303.08774},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL}
+}
+
+
+% ============================================================
+% SECTION 10: LLMs as Algorithm / Strategy Discovery Tools
+% ============================================================
+
+% FunSearch iteratively prompts an LLM to produce programs evaluated
+% for correctness, discovering new cap-set constructions and bin-packing
+% heuristics.  The most direct precedent for using LLMs to synthesize
+% novel algorithmic strategies—essentially the same paradigm applied
+% here to dispatch policies.
+@article{fawzi2024funsearch,
+  author  = {Fawzi, Alhussein and Balog, Matej and Huang, Aja and Hubert, Thomas
+             and Romera-Paredes, Bernardino and Barekatain, Mohammadamin and
+             Novikov, Alexander and Ruiz, Francisco J. R. and Schrittwieser, Julian
+             and Swirszcz, Grzegorz and others},
+  title   = {Mathematical Discoveries from Program Search with Large Language Models},
+  journal = {Nature},
+  volume  = {626},
+  pages   = {468--475},
+  year    = {2024},
+  doi     = {10.1038/s41586-023-06924-6}
+}
+
+% Extends FunSearch with a Gemini-powered evolutionary coding agent;
+% demonstrates 5x speedups in data-center load balancing via
+% AI-discovered algorithms, making it the closest prior art to this
+% project's core thesis that LLMs can discover better dispatch policies.
+@misc{novikov2025alphaevolve,
+  author       = {Novikov, Alexander and Balog, Matej and Hubert, Thomas and
+                  Bauber, Timo and Romera-Paredes, Bernardino and Fawzi, Alhussein
+                  and others},
+  title        = {{AlphaEvolve}: A Coding Agent for Scientific and Algorithmic
+                  Discovery},
+  year         = {2025},
+  eprint       = {2506.13131},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.AI}
+}
+
+% Uses GPT-4 to zero-shot generate reward functions for RL in robotics,
+% outperforming human experts on 83\% of tasks; establishes the pattern
+% of LLMs synthesizing optimization objectives as executable code—directly
+% analogous to synthesizing dispatch policies from a problem description.
+@inproceedings{ma2024eureka,
+  author    = {Ma, Yecheng Jason and Liang, William and Wang, Guanzhi and
+               Huang, De-An and Bastani, Osbert and Jayaraman, Dinesh and
+               Zhu, Yuke and Fan, Linxi and Anandkumar, Anima},
+  title     = {Eureka: Human-Level Reward Design via Coding Large Language Models},
+  booktitle = {Proceedings of the International Conference on Learning
+               Representations (ICLR)},
+  year      = {2024},
+  eprint    = {2310.12931},
+  archivePrefix= {arXiv}
+}
+
+% Proposes Optimization by PROmpting (OPRO) where an LLM iteratively
+% refines solutions described in natural language; the zero-shot and
+% iterative-refinement paradigms it introduces are directly applicable
+% to dispatch-strategy discovery, and its scaling results motivate
+% testing multiple LLM sizes.
+@misc{yang2023opro,
+  author       = {Yang, Chengrun and Wang, Xuezhi and Lu, Yifeng and Liu, Hanxiao
+                  and Le, Quoc V. and Zhou, Denny and Chen, Xinyun},
+  title        = {Large Language Models as Optimizers},
+  year         = {2023},
+  eprint       = {2309.03409},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.LG}
+}
+
+
+% ============================================================
+% SECTION 11: AI / LLMs for Systems Research
+% ============================================================
+
+% THE primary motivation for this project.  Introduces the AI-Driven
+% Research for Systems (ADRS) methodology, validated across 11 case
+% studies including a load-balancing task with 5x speedup.  Directly
+% justifies using LLMs to discover dispatch strategies and frames the
+% broader research agenda this experiment contributes to.
+@misc{cheng2025barbarians,
+  author       = {Cheng, Audrey and Liu, Shu and Pan, Melissa and Li, Zhifei and
+                  Wang, Bowen and Krentsel, Alex and Xia, Tian and
+                  Cemri, Mert and Park, Jongseok and Yang, Shuo and Chen, Jeff and
+                  Agrawal, Lakshya and Desai, Aditya and Xing, Jiarong and
+                  Sen, Koushik and Zaharia, Matei and Stoica, Ion},
+  title        = {Barbarians at the Gate: How {AI} is Upending Systems Research},
+  year         = {2025},
+  eprint       = {2510.06189},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.DC}
+}
+
+% Follow-up to "Barbarians at the Gate" evaluating OpenEvolve, GEPA,
+% and ShinkaEvolve on ten real systems problems, achieving a 13x
+% speedup in a load-balancing task; provides the experimental
+% infrastructure and benchmarks most directly comparable to this
+% project's methodology.
+@misc{cheng2025letbarbarians,
+  author       = {Cheng, Audrey and Liu, Shu and Pan, Melissa and Li, Zhifei and
+                  Agarwal, Shubham and Cemri, Mert and Wang, Bowen and
+                  Krentsel, Alexander and Xia, Tian and Park, Jongseok and
+                  Yang, Shuo and Chen, Jeff and Agrawal, Lakshya and
+                  Naren, Ashwin and Li, Shulu and Ma, Ruiying and
+                  Desai, Aditya and Xing, Jiarong and
+                  Sen, Koushik and Zaharia, Matei and Stoica, Ion},
+  title        = {Let the Barbarians In: How {AI} Can Accelerate Systems
+                  Performance Research},
+  year         = {2025},
+  eprint       = {2512.14806},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.DC}
+}
+
+
+% ============================================================
+% SECTION 12: Thundering Herd Problem
+% ============================================================
+
+% Formally analyzes and solves the cache-stampede (thundering herd)
+% problem using probabilistic early expiration; models the correlated-
+% arrival burst that JSQ-on-stale-data causes, and proves optimality
+% of a randomized countermeasure—directly relevant to why Po2C's
+% randomization helps and what a better strategy should achieve.
+@article{vattani2015stampede,
+  author  = {Vattani, Andrea and Chierichetti, Flavio and Lowenstein, Keegan},
+  title   = {Optimal Probabilistic Cache Stampede Prevention},
+  journal = {Proceedings of the VLDB Endowment},
+  volume  = {8},
+  number  = {8},
+  pages   = {886--897},
+  year    = {2015},
+  doi     = {10.14778/2757807.2757813}
+}
+
+
+% ============================================================
+% SECTION 13: Work Stealing and Decentralized Scheduling
+% ============================================================
+
+% Introduces and proves correctness/performance bounds for work-stealing
+% schedulers; a foundational distributed-load-balancing result and the
+% canonical example of a decentralized scheduling policy whose per-worker
+% state is inherently stale—work-steal decisions rely on sampled, not
+% synchronized, load.
+@article{blumofe1999workstealing,
+  author  = {Blumofe, Robert D. and Leiserson, Charles E.},
+  title   = {Scheduling Multithreaded Computations by Work Stealing},
+  journal = {Journal of the ACM},
+  volume  = {46},
+  number  = {5},
+  pages   = {720--748},
+  year    = {1999},
+  doi     = {10.1145/324133.324234}
+}
+
+
+% ============================================================
+% SECTION 14: ML / RL-Based Scheduling
+% ============================================================
+
+% Uses graph neural networks and RL to learn cluster scheduling policies
+% from scratch, achieving 19--45\% improvement over hand-tuned heuristics;
+% establishes the ML-for-scheduling baseline that LLM-synthesized
+% strategies should be compared against, and motivates asking whether
+% a zero-shot LLM can match learned policies without any training signal.
+@inproceedings{mao2019decima,
+  author    = {Mao, Hongzi and Schwarzkopf, Malte and Venkatakrishnan,
+               Shaileshh Bojja and Meng, Zili and Alizadeh, Mohammad},
+  title     = {Learning Scheduling Algorithms for Data Processing Clusters},
+  booktitle = {Proceedings of the ACM Special Interest Group on Data
+               Communication (SIGCOMM)},
+  pages     = {270--288},
+  year      = {2019},
+  doi       = {10.1145/3341302.3342080}
+}
+
+
+% ============================================================
+% SECTION 15: LLM Reasoning and Prompting
+% ============================================================
+
+% Shows that step-by-step reasoning prompts elicit substantially better
+% performance on algorithmic and mathematical tasks; relevant to how LLMs
+% should be prompted to reason about dispatch strategy trade-offs before
+% synthesizing code, and informs the zero-shot prompt design in this
+% experiment.
+@inproceedings{wei2022cot,
+  author    = {Wei, Jason and Wang, Xuezhi and Schuurmans, Dale and
+               Bosma, Maarten and Ichter, Brian and Xia, Fei and Chi, Ed and
+               Le, Quoc and Zhou, Denny},
+  title     = {Chain-of-Thought Prompting Elicits Reasoning in Large Language
+               Models},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  volume    = {35},
+  year      = {2022},
+  eprint    = {2201.11903},
+  archivePrefix= {arXiv}
+}
+
+% Uses LLMs to discover scheduling heuristics for NP-hard single-machine
+% problems that outperform classical rules; the closest direct parallel
+% to this project in the scheduling/OR domain, confirming that LLMs can
+% synthesize non-obvious, domain-specific scheduling logic.
+@misc{bueyuektahtakin2025heuristics,
+  author       = {B\"{u}y\"{u}ktahtakin Toy, {\.{I}}. Esra and others},
+  title        = {Discovering Heuristics with Large Language Models for
+                  Mixed-Integer Programs: Single-Machine Scheduling},
+  year         = {2025},
+  eprint       = {2510.24013},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.AI}
+}

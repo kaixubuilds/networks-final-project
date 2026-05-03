@@ -1,0 +1,49 @@
+{
+  "text": {
+    "title": "LLM median performance vs. baselines",
+    "xlabel": "Median mean \u03c3 across valid trials",
+    "baseline_labels": {
+      "Random": "Random",
+      "Po2C": "Po2C",
+      "JSQ-stale": "JSQ-stale"
+    },
+    "shade_label": "worse than Random"
+  },
+  "models": [
+    {
+      "name": "Qwen3-1.7B",
+      "label": "Qwen3-1.7B",
+      "median_sigma": 27.2073
+    },
+    {
+      "name": "Qwen3-4B",
+      "label": "Qwen3-4B",
+      "median_sigma": 26.752
+    },
+    {
+      "name": "Qwen3-8B",
+      "label": "Qwen3-8B",
+      "median_sigma": 24.0234
+    },
+    {
+      "name": "Qwen3-14B",
+      "label": "Qwen3-14B",
+      "median_sigma": 27.3788
+    },
+    {
+      "name": "DeepSeek-R1-0528-Qwen3-8B",
+      "label": "DeepSeek-R1\n(8B)",
+      "median_sigma": 27.2553
+    },
+    {
+      "name": "gpt-oss-20b",
+      "label": "gpt-oss-20b",
+      "median_sigma": 21.0256
+    }
+  ],
+  "baselines": {
+    "Random": 3.7658,
+    "Po2C": 4.4018,
+    "JSQ-stale": 14.9474
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "text": {
+    "suptitle": "Both models independently converge on: adj\u00a0=\u00a0max(q\u00a0\u2212\u00a0age,\u00a00),\u00a0return\u00a0argmin(adj)"
+  },
+  "gpt_oss_20b": {
+    "source": "def dispatch(queue_lengths, queue_ages_ms, num_workers):\n    min_index = 0\n    min_value = float('inf')\n    for w in range(num_workers):\n        eff = queue_lengths[w] - queue_ages_ms[w] / 1.0\n        if eff < 0:\n            eff = 0\n        # Add small random noise to break ties uniformly\n        eff += random.random() * 0.01\n        if eff < min_value:\n            min_value = eff\n            min_index = w\n    return min_index\n",
+    "mean_sigma": 2.8707,
+    "model_label": "gpt-oss-20b, trial 53"
+  },
+  "qwen3_14b": {
+    "source": "def dispatch(queue_lengths, queue_ages_ms, num_workers):\n    adjusted = []\n    for w in range(num_workers):\n        adj_len = max(queue_lengths[w] - queue_ages_ms[w], 0)\n        adjusted.append((adj_len, w))\n    min_adj = min(adjusted, key=lambda x: x[0])\n    candidates = [w for (len_, w) in adjusted if len_ == min_adj[0]]\n    return random.choice(candidates)\n",
+    "mean_sigma": 2.9781,
+    "model_label": "Qwen3-14B, trial 84"
+  }
+}
