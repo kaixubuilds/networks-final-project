@@ -63,7 +63,7 @@ queue-length reports may be stale, job-size estimates may be
 unreliable, or a standard algorithm may degrade under a
 problem-specific failure mode that requires a novel correction.
 When practitioners encounter such scenarios, they increasingly turn to
-large language models for help---yet it is unclear whether LLMs can
+large language models for help. However, it is unclear whether LLMs can
 reason correctly about the stochastic properties that make these
 problems hard.
 We investigate this through two controlled experiments in which six
@@ -118,7 +118,7 @@ Our main findings are:
 \begin{enumerate}
   \item \textbf{No model reliably beats the best classical baseline.}
     In Experiment~1, every model's median performance is worse than
-    routing uniformly at random---the weakest possible baseline.
+    routing uniformly at random (the weakest possible baseline).
     In Experiment~2, median performance sits between Least Connections
     and SRPT-noisy; only a small minority of trials improve on
     SRPT-noisy.
@@ -160,7 +160,7 @@ information for robustness.
 \citet{mitzenmacher2000useful} shows that even moderately outdated
 information can eliminate Po2C's guarantees.
 \citet{dahlin2000stale} characterizes the herding failure analytically
-and derives age-adjusted routing thresholds---the same kind of
+and derives age-adjusted routing thresholds, the same kind of
 correction our experiments ask LLMs to discover independently.
 
 \paragraph{SRPT scheduling and estimation noise.}
@@ -413,9 +413,8 @@ We classify each valid trial by inspecting the generated code
 
 All four classes perform worse than Random.
 The key observation is not which direction models get the sign
-wrong, but that \emph{any} use of the age signal---in either
-direction---consistently fails to beat the baseline that ignores it
-entirely.
+wrong, but that \emph{any} use of the age signal, in either direction,
+consistently fails to beat the baseline that ignores it entirely.
 Using stale information badly is worse than not using it at all.
 
 \begin{figure}[H]
@@ -498,7 +497,7 @@ under noisy estimates this approximation fails in two ways.
 First, because $\epsilon$ is log-normal, individual estimates can be
 far from the true size: at $\sigma{=}1$, roughly 1\% of estimates
 fall below 10\% of the true value.
-Second, $\mathrm{ERW}_w$ does not update during service—a large
+Second, $\mathrm{ERW}_w$ does not update during service: a large
 underestimated job contributes only its small estimated size to
 $\mathrm{ERW}_w$ throughout its entire service time.
 
@@ -704,7 +703,7 @@ Two structurally distinct variants appear repeatedly:
     $\tilde{s}_w = \max(\mathrm{ERW}_w,\;
       c_w \cdot 1.0) + \hat{S}_\text{new}$
 \end{itemize}
-Both use the coefficient 1.0\,ms, equal to $E[S]$---the mean service
+Both use the coefficient 1.0\,ms, equal to $E[S]$, the mean service
 time stated in the prompt.
 The additive penalty blends both signals; the floor correction
 replaces $\mathrm{ERW}_w$ with $c_w \cdot E[S]$ whenever the latter
@@ -716,7 +715,7 @@ To evaluate robustly, we re-run each of the five unique functions
 over 20 fresh seeds (the same 20 seeds used for the baselines in
 Table~\ref{tab:exp2-results}).
 The top two functions achieve median mean response times of
-1.88\,ms and 1.90\,ms respectively---between SRPT-oracle (1.79\,ms)
+1.88\,ms and 1.90\,ms respectively, between SRPT-oracle (1.79\,ms)
 and SRPT-noisy (1.94\,ms).
 Figure~\ref{fig:exp2-best} shows the code alongside the performance
 comparison.
@@ -747,19 +746,116 @@ while others perform near the LC baseline.
 Qwen3-14B produced 50 valid trials with wider variance.
 The typical performance of both models is 2.0--2.4\,ms, not 1.88\,ms.
 LLMs can synthesize the correct correction when given a description
-of the failure mode, but not reliably---the best functions were
+of the failure mode, but not reliably: the best functions were
 discovered in 3 of 30 trials for the top model, not consistently.
 
 % ============================================================
 \section{Discussion}
 \label{sec:discussion}
 
+\paragraph{Zero-shot generation versus iterative algorithm search.}
+Recent work on AI-Driven Research for Systems
+(ADRS)~\citep{cheng2025barbarians} demonstrates that LLM-driven
+algorithm discovery can match or exceed human-designed baselines
+across a range of systems performance problems, including load
+balancing, cloud scheduling, and database query optimization.
+Related systems such as AlphaEvolve~\citep{novikov2025alphaevolve}
+and FunSearch~\citep{fawzi2024funsearch} report similar gains on
+combinatorial and algorithmic tasks.
+The positive findings of these works may appear to contradict the
+largely negative results reported here, but the difference is
+methodological rather than a disagreement about LLM capability.
+
+ADRS operates as an iterative search: in each round a solution
+generator proposes candidate algorithms, an evaluator scores them
+against a simulator, and the resulting scores, along with
+qualitative feedback, are fed back into the next generation prompt.
+Over hundreds of such iterations, the feedback loop guides the
+search toward progressively better solutions, concentrating
+probability mass around strategies that the simulator rewards.
+Our experiments can be understood as the first rollout of the ADRS
+loop: the prompt is issued once, samples are drawn at temperature~1,
+and the results are never fed back to refine the prompt.
+There is no iteration, no evaluator score returned to the model, and
+no continual refinement of the generation context.
+The ADRS results establish what is achievable once that feedback loop
+runs to convergence; our results establish what a practitioner
+receives before it starts.
+
+Experiment~2 makes the relationship particularly clear.
+\citet{cheng2025barbarians} identify three components a prompt must
+supply for effective algorithm evolution: a precise problem
+description, a stated optimisation objective, and context about the
+system and its failure modes.
+Experiment~2 satisfies all three: it describes the SRPT routing
+setting and the noisy-estimate failure mode in detail, states the
+objective (reduce mean response time), and provides the reference
+SRPT implementation as a starting point.
+This prompt structure closely mirrors what ADRS case studies use.
+The critical missing ingredient in our setting is the iteration
+loop: without an evaluator returning scores to guide subsequent
+generations, the model must discover the correct correction in a
+single forward pass.
+The results are consistent with this framing.
+The best functions in Experiment~2 do recover the correction
+derived in Section~\ref{sec:exp2-math}, and they use the
+coefficient equal to the mean service time stated in the
+prompt, indicating that the model reads and applies the failure
+description rather than pattern-matching to the interface.
+But these functions appear in only 3 of 30 trials for the best-
+performing model.
+In an ADRS pipeline even this sparse positive signal is sufficient:
+a few high-scoring solutions in early rounds provide the feedback
+needed to concentrate search toward the correct strategy.
+In the zero-shot regime, the same sparsity means a practitioner is
+more likely than not to receive a suboptimal function.
+
+A final pattern is relevant to the boundary conditions of iterative
+search itself.
+Across both experiments, every function that beats the best
+classical baseline originates from one of the two largest models
+tested, gpt-oss-20b or Qwen3-14B.
+The smaller models (Qwen3-1.7B, Qwen3-4B, Qwen3-8B, and
+DeepSeek-R1) do not produce a single solution that clears this bar
+in either experiment.
+This is consistent with a minimum capability requirement for
+iterative search to be productive: if a model cannot generate even
+one high-quality solution across many independent trials,
+an iterative loop that relies on evaluator feedback from those
+solutions would receive no informative signal from which to improve.
+The parallel to policy optimisation in reinforcement learning is
+direct: a policy that assigns near-zero probability to high-reward
+actions provides no usable gradient regardless of the number of
+training iterations.
+Scale may therefore determine not only whether a model produces
+valid, executable code (the threshold effect discussed below) but
+also whether it is capable of seeding a productive iterative search
+at all.
+ADRS-style iteration, in other words, amplifies a capability that
+already exists in sufficiently large models; it cannot substitute
+for it.
+
+That said, the zero-shot regime is arguably the more common one in
+practice.
+Most engineers who consult an LLM for algorithm advice do so by
+asking a question, not by running a simulation-backed optimisation
+loop.
+Setting up an evaluator, defining a scoring function, and running
+hundreds of iterations requires engineering effort that is rarely
+available when the goal is simply to get a better dispatch function
+quickly.
+The median and average-case performance measured in our experiments
+therefore reflects what practitioners typically encounter: on
+average, the output of a zero-shot query performs worse than the
+algorithm it is meant to replace, and human review before deployment
+is warranted.
+
 \paragraph{No model reliably beats the best baseline.}
 The central finding across both experiments is that LLM-generated
 dispatch functions do not reliably improve on the best available
 classical baseline.
 In Experiment~1, every model's median performance is worse than
-Random---meaning the typical LLM output is actively harmed by the
+Random, meaning the typical LLM output is actively harmed by the
 information it uses.
 In Experiment~2, median performance sits between LC and SRPT-noisy;
 improvements over SRPT-noisy are confined to the top few functions
@@ -792,9 +888,9 @@ Where scale does seem to matter is at the extremes.
 Smaller models tend to generate more syntactically broken or
 semantically incoherent functions, pulling down their worst-case
 performance.
-Larger models occasionally discover high-quality solutions---diamonds
-in the rough---that smaller models never reach, even though their
-typical output is no better.
+Larger models occasionally discover high-quality solutions that
+smaller models never reach, even though their typical output is
+no better.
 This asymmetry suggests that scale increases the ceiling on best-case
 solutions without consistently raising the floor.
 
@@ -805,10 +901,10 @@ reinforcement learning stage of these models' training: RLHF or
 RLVR reward signals optimized on common code and reasoning tasks may
 not transfer reliably to out-of-distribution problems like stochastic
 load balancing.
-If so, the largest models carry latent knowledge of the correct
-strategy---visible in the rare trials that get it right---but cannot
-sample it consistently because the policy was not shaped by feedback
-from this problem class.
+If so, the largest models carry latent knowledge of the correct strategy,
+visible in the rare trials that get it right, but cannot sample it
+consistently because the policy was not shaped by feedback from
+this problem class.
 
 \paragraph{Describing the failure mode helps.}
 The two experiments differ in one key respect beyond the failure mode
@@ -817,15 +913,15 @@ mechanism, while Experiment~1's prompt provides only the interface
 and system parameters.
 The best-discovered functions in Experiment~2 correct exactly the
 described failure, using a coefficient ($1.0$\,ms) equal to the
-stated mean service time---evidence that the model is reading and
-applying the failure description, not just pattern-matching to the
+stated mean service time, indicating that the model is reading and
+applying the failure description rather than pattern-matching to the
 interface.
 This asymmetry explains the gap in discovery rates: Experiment~2
 yields more top-performing solutions despite presenting a harder
 optimization landscape.
-A clean ablation---add an explicit thundering-herd description to
-Experiment~1, or withhold the ERW-freeze explanation from
-Experiment~2---would isolate how much of the gap is attributable
+A clean ablation (adding an explicit thundering-herd description to
+Experiment~1, or withholding the ERW-freeze explanation from
+Experiment~2) would isolate how much of the gap is attributable
 to prompt framing versus task difficulty.
 
 \paragraph{Limitations.}
@@ -853,9 +949,9 @@ structures would enable more general evaluation.
 Third, and most directly motivated by the RL generalization
 hypothesis above: can reinforcement learning with a simulator as
 the reward signal improve LLM load-balancing capabilities?
-Using the discrete-event simulation itself as a judge---scoring
+Using the discrete-event simulation itself as a judge, scoring
 generated dispatch functions by the queue standard deviation or mean
-response time they achieve---would provide a task-specific reward
+response time they achieve, would provide a task-specific reward
 signal absent from standard training, and could close the gap between
 occasional correct solutions and consistently good ones.
 
@@ -877,7 +973,7 @@ Scale determines whether a model can produce valid code at all
 (roughly 8B parameters is the threshold) but does not predict
 median quality above that threshold.
 Larger models do occasionally discover correct solutions, but they
-do so inconsistently---the right answer appears in a small minority
+do so inconsistently: the right answer appears in a small minority
 of trials, not as the expected output.
 
 Providing an explicit description of the failure mode substantially
@@ -886,13 +982,124 @@ the underlying capability to fix described problems but not to
 diagnose them from scratch.
 The most direct next steps are to measure how much of this gap is
 driven by prompt framing versus task difficulty, and to explore
-whether task-specific reinforcement learning---using the simulator
-itself as the reward signal---can close the gap between occasional
+whether task-specific reinforcement learning, using the simulator
+itself as the reward signal, can close the gap between occasional
 correct solutions and consistently reliable ones.
 
 % ============================================================
 \newpage
 \bibliographystyle{abbrvnat}
 \bibliography{references}
+
+% ============================================================
+\appendix
+\section{Appendix: LLM Prompts}
+\label{app:prompts}
+
+Both experiments use the same system prompt and differ only in the user prompt.
+
+\paragraph{System prompt (both experiments).}
+\begin{lstlisting}
+You are an expert in distributed systems and load balancing.
+\end{lstlisting}
+
+\subsection{Experiment 1: Age-Aware Dispatching under Heartbeat Staleness}
+
+\begin{lstlisting}
+Write the body of a dispatch function for a distributed system
+with {num_workers} workers.
+
+System parameters:
+- Poisson job arrivals, total utilisation ~80%
+- Exponential service times, mean 1 ms
+- Each worker independently sends a heartbeat every ~20 ms;
+  heartbeats arrive 1-5 ms later, so each worker's reported
+  state has a different age
+
+Function signature:
+  def dispatch(queue_lengths: list[int],
+               queue_ages_ms: list[float],
+               num_workers: int) -> int
+
+  queue_lengths[w]  -- queue depth reported in worker w's
+                       last heartbeat
+  queue_ages_ms[w]  -- ms elapsed since that heartbeat arrived
+  num_workers       -- number of workers
+
+Rules:
+- Ages typically range from ~1 ms (just after a heartbeat)
+  to ~25 ms (just before the next)
+- Return the index of the worker to route the next job to
+- Write ONLY the function body (no def line, no imports;
+  `random` and `math` are available)
+- Wrap the code in <code> and </code> tags
+- No text outside the tags
+\end{lstlisting}
+
+\subsection{Experiment 2: Noisy SRPT Dispatching with Heavy-Tailed Jobs}
+
+\begin{lstlisting}
+You are improving a job dispatcher for a server farm with
+{num_workers} workers.
+
+The current dispatcher uses SRPT (Shortest Remaining Processing
+Time): it routes each incoming job to the worker with the
+smallest estimated total remaining work:
+
+    # baseline -- the function you are replacing
+    scores = [estimated_remaining_work[w] + job_size_estimate
+              for w in range(num_workers)]
+    min_s = min(scores)
+    return random.choice(
+        [w for w, s in enumerate(scores) if s == min_s])
+
+System parameters:
+- Poisson arrivals, total utilisation ~80%, {num_workers} workers
+- Job service times follow a Pareto distribution (alpha=1.5,
+  mean ~1 ms) -- heavy-tailed, high variance, many large jobs
+- Job sizes are estimated with log-normal noise (sigma=1.0):
+  estimates can be off by 10x
+
+The failure mode of the current dispatcher:
+- When a large job (say, 50 ms) is severely underestimated at
+  arrival (say, 0.3 ms), estimated_remaining_work for that
+  worker stays near 0 for the entire 50 ms service.
+- estimated_remaining_work[w] is a frozen accumulated sum: it
+  is increased by the noisy estimate when a job ARRIVES and
+  decreased by that same estimate when the job DEPARTS. It does
+  NOT decrease as a job runs -- so a wildly underestimated job
+  makes the worker look nearly empty throughout its real
+  service time.
+- Result: more and more jobs get routed to the
+  secretly-overloaded worker.
+
+Your task: write an improved dispatch function body that
+reduces mean job response time.
+
+Function signature:
+    def dispatch(connections: list[int],
+                 estimated_remaining_work: list[float],
+                 job_size_estimate: float,
+                 num_workers: int) -> int
+
+    connections[w]              -- EXACT count of active jobs
+                                   at worker w (no noise,
+                                   no delay)
+    estimated_remaining_work[w] -- noisy accumulated estimate
+                                   of remaining work at w (ms)
+                                   (mean job size ~1 ms;
+                                   estimates are biased and
+                                   unreliable)
+    job_size_estimate           -- noisy estimate of the
+                                   incoming job's size (ms)
+    num_workers                 -- number of workers
+
+Rules:
+- Return the index (0 to num_workers-1) of the worker to
+  receive this job
+- Write ONLY the function body (no def line, no imports)
+- `random`, `math`, and `numpy` (as `np`) are available
+- Wrap your solution code in <code> and </code> tags
+\end{lstlisting}
 
 \end{document}
