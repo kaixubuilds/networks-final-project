@@ -63,25 +63,25 @@ queue-length reports may be stale, job-size estimates may be
 unreliable, or a standard algorithm may degrade under a
 problem-specific failure mode that requires a novel correction.
 When practitioners encounter such scenarios, they increasingly turn to
-large language models for help. However, it is unclear whether LLMs can
-reason correctly about the stochastic properties that make these
-problems hard.
-We investigate this through two controlled experiments in which six
-LLMs zero-shot write dispatch functions for a server farm under
-heartbeat staleness and under noisy SRPT routing respectively.
-Across both experiments: no model reliably beats the best classical
-baseline in median performance, and naive deployment of LLM-generated
-functions frequently performs \emph{worse} than the algorithm being
-replaced; scale determines code validity below roughly 8B parameters
-but does not predict median quality above that threshold; larger
-models occasionally discover high-quality solutions that smaller
-models never reach, even when their typical output is no better;
-and providing an explicit description of the failure mode increases
-the rate of correct solutions but still does not produce reliable
-improvements.
-These findings suggest that LLMs carry useful latent knowledge about
-algorithmic design but cannot yet be trusted to improve a deployed
-load-balancing algorithm without human oversight.
+large language models for advice. Whether LLMs can reason about the
+stochastic properties that make these problems hard is, however, unclear.
+We study this through two controlled experiments in which six LLMs
+generate dispatch functions zero-shot for a server farm under
+heartbeat staleness and under noisy SRPT routing.
+The results are consistent across both experiments.
+No model reliably beats the best classical baseline in median
+performance, and naive deployment of LLM-generated functions
+frequently performs \emph{worse} than the algorithm being replaced.
+Scale determines code validity below roughly 8B parameters but does
+not predict median quality above that threshold.
+Larger models occasionally discover high-quality solutions that
+smaller models never reach, even when their typical output is no
+better.
+Providing an explicit description of the failure mode increases the
+rate of correct solutions but does not produce reliable improvements.
+These results suggest that LLMs carry useful algorithmic knowledge
+but cannot yet be trusted to improve a deployed load-balancing
+system without human review.
 \end{abstract}
 
 % ============================================================
